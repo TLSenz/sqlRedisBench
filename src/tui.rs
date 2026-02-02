@@ -69,6 +69,13 @@ where
             if results.is_empty() {
                 display_text.push_str("No results yet. Press 'r' to run benchmarks.");
             } else {
+                display_text.push_str(&format!(
+                    "{:<35} | {:<10} | {:<18} | {:<60}\n",
+                    "Benchmark Name", "Status", "Duration", "Description"
+                ));
+                display_text.push_str(&"-".repeat(130));
+                display_text.push('\n');
+
                 for res in results.iter() {
                     let dur_str = match res.duration {
                         Some(d) => format!(" {:?}", d),
@@ -79,7 +86,7 @@ where
                         None => "",
                     };
                     display_text.push_str(&format!(
-                        "{:<25} | {:<10} | {:<18} | {:<100}\n",
+                        "{:<35} | {:<10} | {:<18} | {:<60}\n",
                         res.name, res.status, dur_str, description_str
                     ));
                 }
