@@ -1,29 +1,110 @@
-use redis::{Client, Commands};
-use rusqlite::{Connection, Error, Result};
+mod tui;
 
+use std::time::Duration;
+use redis::Commands;
+use rusqlite::{Connection, Error};
+use tui::{run_tui, BenchResult};
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_tui(run_benchmarks)
+}
 
-fn main() {
+fn run_benchmarks() -> Vec<BenchResult> {
+    let mut results = Vec::new();
 
+    // SQLite on Disk
     let result_create_db = setup_sql_lite_data_base_on_disk();
-    match result_create_db {
-        Ok(_) => println!("Database Created Succesfully"),
-        Err(..) => println!("Error Creating Database"),
-    }
-    let redis_client = check_redis_connection();
-   let mut redis_client = match redis_client {
-        Ok(conn) => {
-            println!("Redis Connected");
-            conn
-        } ,
+    let sqlite_disk_duration = match result_create_db {
+        Ok(ref conn) => {
+            results.push(BenchResult {
+                name: "SQLite on Disk Setup".to_string(),
+                status: "Success".to_string(),
+                duration: None,
+                description: None
+            });
+            Some(bench_one_insert_and_select_sqlite(conn))
+        }
         Err(_) => {
-            println!("Could Not connect to Redis");
-            panic!()
-        },
+            results.push(BenchResult {
+                name: "SQLite on Disk Setup".to_string(),
+                status: "Error".to_string(),
+                duration: None,
+                description: None
+            });
+            None
+        }
     };
-    bench_one_insert_and_select_sqlite(&result_create_db.unwrap());
-    bench_one_insert_and_select_sqlite(&setup_sql_lite_data_base_in_memory().unwrap());
-    bench_one_insert_and_select_redis(&mut redis_client);
+    if let Some(d) = sqlite_disk_duration {
+        results.push(BenchResult {
+            name: "SQLite on Disk Bench".to_string(),
+            status: "Success".to_string(),
+            duration: Some(d),
+            description: Some("SQl Lite Database run on Disk. One Insert and one Select".to_string())
+        });
+    }
+
+    // SQLite in Memory
+    let result_create_mem_db = setup_sql_lite_data_base_in_memory();
+    let sqlite_mem_duration = match result_create_mem_db {
+        Ok(ref conn) => {
+            results.push(BenchResult {
+                name: "SQLite in Memory Setup".to_string(),
+                status: "Success".to_string(),
+                duration: None,
+                description: None
+            });
+            Some(bench_one_insert_and_select_sqlite(conn))
+        }
+        Err(_) => {
+            results.push(BenchResult {
+                name: "SQLite in Memory Setup".to_string(),
+                status: "Error".to_string(),
+                duration: None,
+                description: None
+            });
+            None
+        }
+    };
+    if let Some(d) = sqlite_mem_duration {
+        results.push(BenchResult {
+            name: "SQLite in Memory Bench".to_string(),
+            status: "Success".to_string(),
+            duration: Some(d),
+            description: Some("SQl Lite Database run in Memory. One Insert and one Select".to_string())
+        });
+    }
+
+    // Redis
+    let redis_client_res = check_redis_connection();
+    let redis_duration = match redis_client_res {
+        Ok(mut conn) => {
+            results.push(BenchResult {
+                name: "Redis Connection".to_string(),
+                status: "Success".to_string(),
+                duration: None,
+                description: None
+            });
+            Some(bench_one_insert_and_select_redis(&mut conn))
+        }
+        Err(_) => {
+            results.push(BenchResult {
+                name: "Redis Connection".to_string(),
+                status: "Error".to_string(),
+                duration: None,
+                description: None
+            });
+            None
+        }
+    };
+    if let Some(d) = redis_duration {
+        results.push(BenchResult {
+            name: "Redis Bench".to_string(),
+            status: "Success".to_string(),
+            duration: Some(d),
+            description: Some("Redis Database. One Insert and one Select. Runs in a Docker Container on Localhost".to_string())
+        });
+    }
+    results
 }
 
 
@@ -48,18 +129,18 @@ fn check_redis_connection() -> Result<redis::Connection, redis::RedisError> {
 }
 
 
-fn bench_one_insert_and_select_sqlite(sqlite_conn: &Connection) {
+fn bench_one_insert_and_select_sqlite(sqlite_conn: &Connection) -> Duration {
     let start = std::time::Instant::now();
     sqlite_conn.execute("INSERT INTO test (name) VALUES (?1)", ["test"]).expect("Insert failed");
     sqlite_conn.execute("SELECT * FROM test WHERE id = ?", [0]).expect("Request Failed");
-    let elapsed = start.elapsed();
-
+    let _elapsed = start.elapsed();
+    _elapsed
 }
 
-fn bench_one_insert_and_select_redis(redis_conn: &mut redis::Connection) {
+fn bench_one_insert_and_select_redis(redis_conn: &mut redis::Connection) -> Duration{
     let start = std::time::Instant::now();
-    let request: () =   redis_conn.set(0, 0).expect("Insert failed");
-    let result: () = redis_conn.get(0).expect("Request Failed");
+    let _request: () =   redis_conn.set(0, 0).expect("Insert failed");
+    let _result: () = redis_conn.get(0).expect("Request Failed");
     let elapsed = start.elapsed();
-    println!("R: {:?}", elapsed)
+    elapsed
 }
