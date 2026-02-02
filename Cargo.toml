@@ -2,6 +2,13 @@
 name = "sqlRedisBench"
 version = "0.1.0"
 edition = "2024"
+authors = ["Thalium <thalium@duck.com>"]
+description = "A TUI tool to benchmark and compare SQLite (disk/memory) and Redis performance."
+license = "GPL-3.0-only"
+repository = "https://github.com/thalium/sqlRedisBench"
+readme = "README.md"
+keywords = ["benchmark", "sqlite", "redis", "tui", "ratatui"]
+categories = ["development-tools::profiling", "command-line-utilities"]
 
 [dependencies]
 crossterm = "0.29.0"
