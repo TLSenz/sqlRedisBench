@@ -8,4 +8,9 @@ This is a Benchmark comparing Redis and SQLite. There are different things i tes
 1. Clone the Repository
 
 2. Run the Project
-     cargo run
+
+
+```bash
+cd sqlRedisBench
+cargo run
+```
